@@ -1,8 +1,6 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { startLogin } from "@/const";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import {
@@ -136,65 +134,22 @@ function DecisionCard({
   );
 }
 
-function SeatManager({ access }: { access: any }) {
-  const utils = trpc.useUtils();
-  const [form, setForm] = useState({ email: "", name: "", title: "", seatNumber: 1 });
-  const save = trpc.portal.saveMember.useMutation({
+function PinLoginScreen({ onSuccess }: { onSuccess: () => void }) {
+  const [pin, setPin] = useState("");
+  const login = trpc.pin.login.useMutation({
     onSuccess: () => {
-      toast.success("Decision-maker seat saved");
-      setForm({ email: "", name: "", title: "", seatNumber: Math.min((access.members?.length ?? 0) + 2, 3) });
-      utils.portal.access.invalidate();
+      toast.success("Portal unlocked");
+      onSuccess();
     },
-    onError: error => toast.error(error.message),
-  });
-  const remove = trpc.portal.removeMember.useMutation({
-    onSuccess: () => utils.portal.access.invalidate(),
-    onError: error => toast.error(error.message),
+    onError: error => {
+      setPin("");
+      toast.error(error.message);
+    },
   });
 
-  return (
-    <section className="bg-card text-card-foreground border border-border p-5 sm:p-7 soft-panel">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow text-primary">Portal access</p>
-          <h3 className="display-title text-2xl mt-2">Three executive seats</h3>
-        </div>
-        <span className="text-xs font-bold bg-secondary text-secondary-foreground px-3 py-2">{access.members.length} / 3 allocated</span>
-      </div>
-      <div className="mt-5 space-y-2">
-        {[1, 2, 3].map(seat => {
-          const member = access.members.find((item: any) => item.seatNumber === seat);
-          return (
-            <div key={seat} className="flex items-center gap-3 border-t border-border py-3 first:border-t-0">
-              <span className="h-8 w-8 bg-primary text-primary-foreground grid place-items-center text-xs font-bold">{seat}</span>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm truncate">{member?.name || `Decision-maker ${seat}`}</p>
-                <p className="text-xs text-muted-foreground truncate">{member?.email || "Unallocated"}{member?.title ? ` · ${member.title}` : ""}</p>
-              </div>
-              {member && <button aria-label={`Remove ${member.email}`} className="text-muted-foreground hover:text-destructive" onClick={() => remove.mutate({ id: member.id })}><X className="h-4 w-4" /></button>}
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        <Input placeholder="Name" value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} />
-        <Input placeholder="C-level title" value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} />
-        <Input placeholder="Email address" type="email" className="sm:col-span-2" value={form.email} onChange={event => setForm({ ...form, email: event.target.value })} />
-        <select value={form.seatNumber} onChange={event => setForm({ ...form, seatNumber: Number(event.target.value) })} className="border border-input bg-background px-3 py-2 text-sm">
-          {[1, 2, 3].map(seat => <option key={seat} value={seat}>Seat {seat}</option>)}
-        </select>
-        <Button disabled={!form.email || save.isPending} onClick={() => save.mutate({ ...form, name: form.name || undefined, title: form.title || undefined })}>
-          {save.isPending ? "Saving…" : "Allocate seat"}
-        </Button>
-      </div>
-    </section>
-  );
-}
-
-function LoginScreen() {
   return (
     <main className="min-h-screen grid lg:grid-cols-[1.05fr_.95fr] bg-background text-foreground">
-      <section className="relative min-h-[52vh] lg:min-h-screen bg-cover bg-center" style={{ backgroundImage: "url('/manus-storage/nms-botanical-packaging_bdbd72ed.png')" }}>
+      <section className="relative order-2 lg:order-1 min-h-[52vh] lg:min-h-screen bg-cover bg-center" style={{ backgroundImage: "url('/manus-storage/nms-botanical-packaging_bdbd72ed.png')" }}>
         <div className="absolute inset-0 hero-overlay" />
         <div className="relative z-10 h-full flex flex-col justify-between p-7 sm:p-12 lg:p-16 text-white">
           <div className="flex items-center gap-3">
@@ -209,15 +164,19 @@ function LoginScreen() {
           <p className="text-sm text-white/60">Truth before identity · Portfolio before platform · Compliance before promotion · Pilot before scale</p>
         </div>
       </section>
-      <section className="flex items-center justify-center p-7 sm:p-12 portal-grid">
+      <section className="order-1 lg:order-2 flex items-center justify-center min-h-screen lg:min-h-0 p-7 sm:p-12 portal-grid">
         <div className="w-full max-w-lg bg-card border border-border p-7 sm:p-10 soft-panel">
           <LockKeyhole className="h-8 w-8 text-primary" />
-          <p className="eyebrow text-primary mt-8">Private leadership access</p>
+          <p className="eyebrow text-primary mt-8">Private client access</p>
           <h2 className="display-title text-4xl mt-3">Review. Decide. Progress.</h2>
-          <p className="text-muted-foreground mt-5 leading-7">This portal is limited to the three NMS decision-maker seats and the JB3AI programme owner. Sign in with the account associated with your allocated email address.</p>
-          <Button size="lg" className="w-full mt-8 h-12" onClick={() => startLogin()}>
-            Sign in securely <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          <p className="text-muted-foreground mt-5 leading-7">Enter the private access PIN supplied by JB3AI. No account, email address or external login is required.</p>
+          <form className="mt-8" onSubmit={event => { event.preventDefault(); login.mutate({ pin }); }}>
+            <label htmlFor="portal-pin" className="text-xs uppercase tracking-[.14em] font-bold text-muted-foreground">Access PIN</label>
+            <Input id="portal-pin" type="password" inputMode="numeric" autoComplete="current-password" autoFocus value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="••••" className="mt-2 h-14 text-center text-2xl tracking-[.6em]" />
+            <Button type="submit" size="lg" className="w-full mt-3 h-12" disabled={pin.length < 4 || login.isPending}>
+              {login.isPending ? "Checking…" : "Unlock proposal"} <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </form>
           <div className="mt-7 pt-6 border-t border-border grid grid-cols-3 gap-4 text-center">
             <div><p className="font-bold">3</p><p className="text-[11px] text-muted-foreground">seats</p></div>
             <div><p className="font-bold">12</p><p className="text-[11px] text-muted-foreground">sources</p></div>
@@ -230,16 +189,24 @@ function LoginScreen() {
 }
 
 export default function Home() {
-  const { user, loading, isAuthenticated, logout } = useAuth();
   const { theme, setTheme, themes } = useTheme();
   const [mobileNav, setMobileNav] = useState(false);
   const [decisionRail, setDecisionRail] = useState(false);
-  const access = trpc.portal.access.useQuery(undefined, { enabled: isAuthenticated });
+  const utils = trpc.useUtils();
+  const pinStatus = trpc.pin.status.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  const logout = trpc.pin.logout.useMutation({
+    onSuccess: async () => {
+      await utils.pin.status.invalidate();
+      utils.portal.access.setData(undefined, undefined);
+      utils.decisions.list.setData(undefined, undefined);
+    },
+  });
+  const access = trpc.portal.access.useQuery(undefined, { enabled: pinStatus.data?.authenticated === true, retry: false });
   const decisions = trpc.decisions.list.useQuery(undefined, { enabled: Boolean(access.data) });
   const decisionMap = useMemo(() => new Map((decisions.data ?? []).map(item => [item.area, item])), [decisions.data]);
 
-  if (loading) return <div className="min-h-screen grid place-items-center bg-background"><Leaf className="h-8 w-8 text-primary animate-pulse" /></div>;
-  if (!user) return <LoginScreen />;
+  if (pinStatus.isLoading) return <div className="min-h-screen grid place-items-center bg-background"><Leaf className="h-8 w-8 text-primary animate-pulse" /></div>;
+  if (!pinStatus.data?.authenticated) return <PinLoginScreen onSuccess={() => pinStatus.refetch()} />;
   if (access.isLoading) return <div className="min-h-screen grid place-items-center bg-background"><div className="text-center"><Leaf className="h-8 w-8 text-primary animate-pulse mx-auto" /><p className="mt-4 text-sm text-muted-foreground">Opening controlled proposal…</p></div></div>;
   if (access.error) return (
     <main className="min-h-screen grid place-items-center bg-background p-6">
@@ -247,13 +214,12 @@ export default function Home() {
         <LockKeyhole className="h-9 w-9 mx-auto text-destructive" />
         <h1 className="display-title text-3xl mt-5">Seat allocation required</h1>
         <p className="mt-4 text-muted-foreground">{access.error.message}</p>
-        <Button variant="outline" className="mt-6" onClick={logout}>Sign out</Button>
+        <Button variant="outline" className="mt-6" onClick={() => logout.mutate()}>Lock portal</Button>
       </div>
     </main>
   );
 
   const portal = access.data!;
-  const isAdmin = portal.access.role === "admin";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -269,7 +235,7 @@ export default function Home() {
               {themes.map(item => <button key={item.id} title={item.description} onClick={() => setTheme(item.id)} className={`px-3 py-1.5 text-[11px] font-bold ${theme === item.id ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{item.name.split(" /")[0]}</button>)}
             </div>
             <button onClick={() => setDecisionRail(true)} className="h-9 px-3 bg-accent text-accent-foreground text-xs font-bold flex items-center gap-2"><FileCheck2 className="h-4 w-4" /> <span className="hidden sm:inline">Decisions</span></button>
-            <button onClick={logout} title="Sign out" className="h-9 w-9 border border-border bg-card grid place-items-center"><LogOut className="h-4 w-4" /></button>
+            <button onClick={() => logout.mutate()} title="Lock portal" className="h-9 w-9 border border-border bg-card grid place-items-center"><LogOut className="h-4 w-4" /></button>
           </div>
         </div>
       </header>
@@ -286,9 +252,9 @@ export default function Home() {
             {navigation.map(([id, label], index) => <a key={id} href={`#${id}`} className="flex items-center gap-3 px-3 py-2 text-[13px] text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"><span className="text-[9px] text-sidebar-primary font-bold">{String(index + 1).padStart(2, "0")}</span>{label}</a>)}
           </nav>
           <div className="m-4 mt-0 p-4 border border-sidebar-border">
-            <p className="text-xs font-bold">Signed in</p>
-            <p className="text-xs text-sidebar-foreground/60 mt-1 truncate">{user.name || user.email}</p>
-            <p className="text-[10px] uppercase tracking-wider text-sidebar-primary mt-3">{isAdmin ? "Programme owner" : "Decision-maker"}</p>
+            <p className="text-xs font-bold">PIN access active</p>
+            <p className="text-xs text-sidebar-foreground/60 mt-1 truncate">Shared NMS client session</p>
+            <p className="text-[10px] uppercase tracking-wider text-sidebar-primary mt-3">Private proposal</p>
           </div>
         </aside>
 
@@ -398,13 +364,11 @@ export default function Home() {
             <div className="mt-12 grid md:grid-cols-2 xl:grid-cols-4 border-l border-t border-primary-foreground/20">{["Confirm legal entity & ownership","Approve heritage treatment","Select hero portfolio at Gate B","Choose theme, logo and commerce gate"].map((item,index) => <div key={item} className="p-5 border-r border-b border-primary-foreground/20"><span className="text-xs text-accent font-bold">0{index+1}</span><p className="mt-6">{item}</p></div>)}</div>
           </section>
 
-          {isAdmin && <div className="p-6 sm:p-10 lg:p-14 bg-muted/50"><SeatManager access={portal} /></div>}
-
           <footer className="p-6 sm:p-10 bg-[#18251f] text-white/65 flex flex-col sm:flex-row gap-4 justify-between text-xs"><p>Prepared by JB3AI for Natural Medicinal Services leadership.</p><p>Working proposal · Not legal, medical, regulatory, tax or investment advice.</p></footer>
         </main>
       </div>
 
-      {decisionRail && <div className="fixed inset-0 z-[80]"><button aria-label="Close decision register" className="absolute inset-0 bg-black/50" onClick={() => setDecisionRail(false)} /><aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-card text-card-foreground overflow-y-auto soft-panel"><div className="sticky top-0 z-10 bg-card/95 backdrop-blur border-b border-border p-5 flex items-start justify-between"><div><p className="eyebrow text-primary">Executive register</p><h2 className="display-title text-3xl mt-2">Your decisions</h2><p className="text-xs text-muted-foreground mt-2">Recorded separately for each signed-in decision-maker.</p></div><button onClick={() => setDecisionRail(false)} className="h-9 w-9 border border-border grid place-items-center"><X className="h-4 w-4" /></button></div><div className="p-5 sm:p-7">{decisionAreas.map(item => <DecisionCard key={item.area} {...item} existing={decisionMap.get(item.area)} onSaved={() => decisions.refetch()} />)}</div></aside></div>}
+      {decisionRail && <div className="fixed inset-0 z-[80]"><button aria-label="Close decision register" className="absolute inset-0 bg-black/50" onClick={() => setDecisionRail(false)} /><aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-card text-card-foreground overflow-y-auto soft-panel"><div className="sticky top-0 z-10 bg-card/95 backdrop-blur border-b border-border p-5 flex items-start justify-between"><div><p className="eyebrow text-primary">Executive register</p><h2 className="display-title text-3xl mt-2">Client decisions</h2><p className="text-xs text-muted-foreground mt-2">Shared across the PIN-protected NMS client session.</p></div><button onClick={() => setDecisionRail(false)} className="h-9 w-9 border border-border grid place-items-center"><X className="h-4 w-4" /></button></div><div className="p-5 sm:p-7">{decisionAreas.map(item => <DecisionCard key={item.area} {...item} existing={decisionMap.get(item.area)} onSaved={() => decisions.refetch()} />)}</div></aside></div>}
     </div>
   );
 }

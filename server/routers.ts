@@ -2,73 +2,66 @@ import { COOKIE_NAME } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
-  activatePortalMember,
-  getPortalMemberByEmail,
-  listPortalDecisions,
-  listPortalMembers,
-  removePortalMember,
+  getOrCreatePinClientUser,
+  listPortalDecisionsForUser,
   savePortalDecision,
-  savePortalMember,
 } from "./db";
-import { getSessionCookieOptions } from "./_core/cookies";
+import {
+  clearPinAccessCookie,
+  hasPinAccess,
+  setPinAccessCookie,
+  verifyPortalPin,
+} from "./pinAccess";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { getSessionCookieOptions } from "./_core/cookies";
+import { publicProcedure, router } from "./_core/trpc";
 
-async function requirePortalAccess(user: { role: string; email: string | null }) {
-  if (user.role === "admin") return { role: "admin" as const };
-  if (!user.email) throw new TRPCError({ code: "FORBIDDEN", message: "No email is associated with this account" });
-  const member = await getPortalMemberByEmail(user.email);
-  if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "This account has not been allocated an NMS portal seat" });
-  await activatePortalMember(user.email);
-  return { role: "decision_maker" as const, member };
-}
-
-const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+const pinProtectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  if (!hasPinAccess(ctx.req)) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Enter the NMS portal PIN to continue" });
+  }
   return next({ ctx });
 });
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(({ ctx }) => ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
   }),
-  portal: router({
-    access: protectedProcedure.query(async ({ ctx }) => {
-      const access = await requirePortalAccess(ctx.user);
-      const members = await listPortalMembers();
-      return { access, members, seatLimit: 3 };
-    }),
-    saveMember: adminProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          name: z.string().max(160).optional(),
-          title: z.string().max(160).optional(),
-          seatNumber: z.number().int().min(1).max(3),
-        }),
-      )
-      .mutation(async ({ ctx, input }) =>
-        savePortalMember({ ...input, invitedByUserId: ctx.user.id, status: "invited" }),
-      ),
-    removeMember: adminProcedure
-      .input(z.object({ id: z.number().int().positive() }))
-      .mutation(async ({ input }) => {
-        await removePortalMember(input.id);
+  pin: router({
+    status: publicProcedure.query(({ ctx }) => ({ authenticated: hasPinAccess(ctx.req) })),
+    login: publicProcedure
+      .input(z.object({ pin: z.string().min(4).max(32) }))
+      .mutation(({ ctx, input }) => {
+        if (!verifyPortalPin(input.pin)) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Incorrect access PIN" });
+        }
+        setPinAccessCookie(ctx.req, ctx.res);
         return { success: true } as const;
       }),
+    logout: publicProcedure.mutation(({ ctx }) => {
+      clearPinAccessCookie(ctx.req, ctx.res);
+      return { success: true } as const;
+    }),
+  }),
+  portal: router({
+    access: pinProtectedProcedure.query(() => ({
+      access: { role: "client" as const },
+      members: [],
+      seatLimit: 0,
+    })),
   }),
   decisions: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      await requirePortalAccess(ctx.user);
-      return listPortalDecisions();
+    list: pinProtectedProcedure.query(async () => {
+      const user = await getOrCreatePinClientUser();
+      return listPortalDecisionsForUser(user.id);
     }),
-    save: protectedProcedure
+    save: pinProtectedProcedure
       .input(
         z.object({
           area: z.string().min(1).max(80),
@@ -77,9 +70,9 @@ export const appRouter = router({
           status: z.enum(["draft", "approved", "needs_discussion"]),
         }),
       )
-      .mutation(async ({ ctx, input }) => {
-        await requirePortalAccess(ctx.user);
-        return savePortalDecision({ userId: ctx.user.id, ...input });
+      .mutation(async ({ input }) => {
+        const user = await getOrCreatePinClientUser();
+        return savePortalDecision({ userId: user.id, ...input });
       }),
   }),
 });
