@@ -1,17 +1,15 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -22,7 +20,42 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const portalMembers = mysqlTable("portal_members", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  name: varchar("name", { length: 160 }),
+  title: varchar("title", { length: 160 }),
+  seatNumber: int("seatNumber").notNull(),
+  role: mysqlEnum("memberRole", ["decision_maker"]).default("decision_maker").notNull(),
+  status: mysqlEnum("memberStatus", ["invited", "active"]).default("invited").notNull(),
+  invitedByUserId: int("invitedByUserId").references(() => users.id, { onDelete: "set null" }),
+  lastViewedAt: timestamp("lastViewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const portalDecisions = mysqlTable(
+  "portal_decisions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    area: varchar("area", { length: 80 }).notNull(),
+    selection: varchar("selection", { length: 240 }).notNull(),
+    note: text("note"),
+    status: mysqlEnum("decisionStatus", ["draft", "approved", "needs_discussion"])
+      .default("draft")
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("decision_user_area_unique").on(table.userId, table.area)],
+);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-// TODO: Add your tables here
+export type PortalMember = typeof portalMembers.$inferSelect;
+export type InsertPortalMember = typeof portalMembers.$inferInsert;
+export type PortalDecision = typeof portalDecisions.$inferSelect;
+export type InsertPortalDecision = typeof portalDecisions.$inferInsert;

@@ -1,55 +1,53 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "apothecary" | "clinical" | "botanical";
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme?: () => void;
-  switchable: boolean;
+  setTheme: (theme: Theme) => void;
+  themes: Array<{ id: Theme; name: string; description: string }>;
 }
+
+const themes: ThemeContextType["themes"] = [
+  {
+    id: "apothecary",
+    name: "Heritage Apothecary",
+    description: "Forest, parchment and brass — credible, established and premium.",
+  },
+  {
+    id: "clinical",
+    name: "Clinical Nature / NMS Standard",
+    description: "Navy, mineral blue and white — rigorous, precise and information-led.",
+  },
+  {
+    id: "botanical",
+    name: "Modern Botanical",
+    description: "Deep canopy, sage and warm bone — balanced, distinctive and retail-ready.",
+  },
+];
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-interface ThemeProviderProps {
+export function ThemeProvider({
+  children,
+  defaultTheme = "botanical",
+}: {
   children: React.ReactNode;
   defaultTheme?: Theme;
   switchable?: boolean;
-}
-
-export function ThemeProvider({
-  children,
-  defaultTheme = "light",
-  switchable = false,
-}: ThemeProviderProps) {
+}) {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
-    }
-    return defaultTheme;
+    const stored = localStorage.getItem("nms-proposal-theme") as Theme | null;
+    return stored && themes.some(item => item.id === stored) ? stored : defaultTheme;
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-
-    if (switchable) {
-      localStorage.setItem("theme", theme);
-    }
-  }, [theme, switchable]);
-
-  const toggleTheme = switchable
-    ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
-      }
-    : undefined;
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("nms-proposal-theme", theme);
+  }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme, setTheme, themes }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -57,8 +55,6 @@ export function ThemeProvider({
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
-  }
+  if (!context) throw new Error("useTheme must be used within ThemeProvider");
   return context;
 }
