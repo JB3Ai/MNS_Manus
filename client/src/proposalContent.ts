@@ -6,12 +6,37 @@ export const navigation = [
   ["brand", "New brand"],
   ["marketing", "Marketing"],
   ["products", "Products"],
+  ["videos", "Video briefings"],
   ["compliance", "Compliance"],
   ["engagement", "Engagement"],
   ["commerce", "Shopify & ordering"],
   ["risks", "Risks & controls"],
   ["costing", "Cost framework"],
   ["decisions", "Decisions"],
+] as const;
+
+export const proposalVideos = [
+  {
+    id: "sg7f5TGbeno",
+    title: "The Digital Operating System",
+    subtitle: "Marketing, social media and online-store relaunch",
+    thumbnail: null,
+    status: "YouTube upload processing",
+  },
+  {
+    id: "RncAWK7UVHk",
+    title: "The 90-Day Transformation Blueprint",
+    subtitle: "How the delivery sprint fits inside the controlled transformation",
+    thumbnail: "/manus-storage/transformation-blueprint_b82d4b14.jpg",
+    status: "Available",
+  },
+  {
+    id: "A1k4S4FmYG4",
+    title: "The Heritage Trap",
+    subtitle: "Engineering the Verified Root without overclaiming the past",
+    thumbnail: "/manus-storage/heritage-trap_b2eb5dbf.jpg",
+    status: "Available",
+  },
 ] as const;
 
 export const statusMetrics = [

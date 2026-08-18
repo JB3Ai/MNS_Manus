@@ -14,6 +14,7 @@ import {
   marketingChannels,
   navigation,
   productCriteria,
+  proposalVideos,
   risks,
   roadmap,
   statusMetrics,
@@ -43,6 +44,7 @@ import {
   PackageCheck,
   Palette,
   Phone,
+  Play,
   Scale,
   ShieldCheck,
   ShoppingBag,
@@ -74,6 +76,56 @@ function SectionHeading({
         <p className="mt-4 max-w-3xl text-muted-foreground leading-7">{intro}</p>
       </div>
     </div>
+  );
+}
+
+function VideoShowcase() {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeVideo = proposalVideos.find(video => video.id === activeId);
+
+  return (
+    <section id="videos" className="section-anchor p-6 sm:p-10 lg:p-14 bg-[#18251f] text-white border-b border-white/15">
+      <div className="grid gap-5 lg:grid-cols-[0.32fr_0.68fr] lg:items-end mb-8">
+        <p className="eyebrow text-accent">07 · Executive video briefings</p>
+        <div>
+          <h2 className="display-title text-3xl sm:text-4xl lg:text-5xl leading-[1.04]">Three perspectives on the relaunch.</h2>
+          <p className="mt-4 max-w-3xl text-white/65 leading-7">Select a briefing to expand it into a full-width player. Together they connect the digital operating system, 90-day delivery sprint and heritage strategy.</p>
+        </div>
+      </div>
+
+      {activeVideo && (
+        <div className="mb-7 border border-white/20 bg-black/25">
+          <div className="flex items-center justify-between gap-4 p-4 sm:px-5 border-b border-white/15">
+            <div>
+              <p className="text-[10px] uppercase tracking-[.15em] text-accent font-bold">Now playing</p>
+              <h3 className="font-semibold mt-1">{activeVideo.title}</h3>
+            </div>
+            <button onClick={() => setActiveId(null)} aria-label="Close expanded video" className="h-9 w-9 border border-white/25 grid place-items-center hover:bg-white/10"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="aspect-video bg-black">
+            <iframe className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${activeVideo.id}?autoplay=1&rel=0`} title={activeVideo.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {proposalVideos.map((video, index) => (
+          <button key={video.id} onClick={() => setActiveId(video.id)} className={`group text-left border transition-colors duration-200 ${activeId === video.id ? "border-accent" : "border-white/20 hover:border-white/50"}`}>
+            <div className="relative aspect-video overflow-hidden bg-primary">
+              {video.thumbnail ? <img src={video.thumbnail} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.025]" /> : <div className="absolute inset-0 portal-grid flex flex-col justify-between p-5"><span className="text-[10px] uppercase tracking-[.16em] text-white/55">Briefing {String(index + 1).padStart(2, "0")}</span><p className="display-title text-2xl max-w-[80%]">Digital operating system</p></div>}
+              <span className="absolute inset-0 bg-black/15 group-hover:bg-black/5 transition-colors" />
+              <span className="absolute left-4 bottom-4 h-12 w-12 bg-accent text-accent-foreground grid place-items-center"><Play className="h-5 w-5 fill-current" /></span>
+              {video.status !== "Available" && <span className="absolute right-3 top-3 bg-black/70 px-3 py-1.5 text-[9px] uppercase tracking-[.12em] font-bold">Processing</span>}
+            </div>
+            <div className="p-5 min-h-36 bg-white/[.035]">
+              <p className="text-[10px] uppercase tracking-[.14em] text-accent font-bold">Video {String(index + 1).padStart(2, "0")}</p>
+              <h3 className="font-semibold mt-3 leading-6">{video.title}</h3>
+              <p className="text-sm text-white/55 mt-2 leading-5">{video.subtitle}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -327,20 +379,22 @@ export default function Home() {
             </div>
           </section>
 
+          <VideoShowcase />
+
           <section id="compliance" className="section-anchor p-6 sm:p-10 lg:p-14 border-b border-border">
-            <SectionHeading eyebrow="07 · SAHPRA & compliance" title="Claims are controlled product data—not creative copy." intro="Health supplements are limited to low-risk indication frameworks and product readiness must link formulation, dose, evidence, warnings, quality and channel use." />
+            <SectionHeading eyebrow="08 · SAHPRA & compliance" title="Claims are controlled product data—not creative copy." intro="Health supplements are limited to low-risk indication frameworks and product readiness must link formulation, dose, evidence, warnings, quality and channel use." />
             <div className="grid md:grid-cols-2 xl:grid-cols-3 border-l border-t border-border">{complianceLayers.map((layer, index) => <article key={layer.title} className="p-6 border-r border-b border-border min-h-48"><div className="flex items-center gap-3"><span className="h-8 w-8 bg-primary text-primary-foreground grid place-items-center text-xs font-bold">{index + 1}</span><ShieldCheck className="h-5 w-5 text-primary" /></div><h3 className="font-semibold mt-6">{layer.title}</h3><p className="text-sm text-muted-foreground mt-3 leading-6">{layer.text}</p></article>)}</div>
             <div className="mt-8 border-l-4 border-accent bg-card p-6"><p className="font-semibold">Mandatory release rule</p><p className="text-muted-foreground mt-2 leading-7">Physical stock, controlled specification, regulatory category, barcode/NAPPI, artwork, commercial data, logistics and digital assets must all be green with named evidence before a SKU is publishable or orderable.</p></div>
           </section>
 
           <section id="engagement" className="section-anchor p-6 sm:p-10 lg:p-14 bg-card border-b border-border">
-            <SectionHeading eyebrow="08 · Customer engagement" title="One case model across every conversation." intro="Calls, chatbot, email, WhatsApp and social should share approved product information, consent controls and full-context escalation so safety and service are never fragmented." />
+            <SectionHeading eyebrow="09 · Customer engagement" title="One case model across every conversation." intro="Calls, chatbot, email, WhatsApp and social should share approved product information, consent controls and full-context escalation so safety and service are never fragmented." />
             <div className="border-t border-border">{engagementFlows.map((flow, index) => <article key={flow.channel} className="grid gap-4 sm:grid-cols-[48px_120px_1fr] py-5 border-b border-border items-center"><span className="h-9 w-9 bg-secondary grid place-items-center text-xs font-bold">{index + 1}</span><h3 className="font-semibold">{flow.channel}</h3><p className="text-sm text-muted-foreground">{flow.steps}</p></article>)}</div>
             <div className="mt-8 grid sm:grid-cols-5 gap-3">{[[Phone,"Calls"],[Bot,"Chatbot"],[Mail,"Email"],[MessageCircle,"WhatsApp"],[Users,"Social"]].map(([Icon,label]: any) => <div key={label} className="border border-border p-4 text-center"><Icon className="h-5 w-5 mx-auto text-primary"/><p className="text-xs font-bold mt-3">{label}</p></div>)}</div>
           </section>
 
           <section id="commerce" className="section-anchor p-6 sm:p-10 lg:p-14 border-b border-border">
-            <SectionHeading eyebrow="09 · Shopify & ordering" title="Catalogue first. Checkout only after operational acceptance." intro="Shopify is a strong platform option, but it has not been selected by the source material and must be compared against NMS requirements before procurement." />
+            <SectionHeading eyebrow="10 · Shopify & ordering" title="Catalogue first. Checkout only after operational acceptance." intro="Shopify is a strong platform option, but it has not been selected by the source material and must be compared against NMS requirements before procurement." />
             <div className="grid gap-6 lg:grid-cols-2">
               <article className="bg-primary text-primary-foreground p-7"><Store className="h-7 w-7 text-accent"/><p className="eyebrow mt-8 text-primary-foreground/60">Stage 1</p><h3 className="display-title text-3xl mt-3">Verified discovery</h3><p className="mt-4 text-primary-foreground/72 leading-7">Approved catalogue, educational library, stockist locator, trade enquiry/portal and customer-care routes. No unverified products or prices.</p></article>
               <article className="border border-border p-7 bg-card"><ShoppingBag className="h-7 w-7 text-primary"/><p className="eyebrow mt-8 text-primary">Stage 2</p><h3 className="display-title text-3xl mt-3">Controlled ordering</h3><p className="mt-4 text-muted-foreground leading-7">Approved SKUs, stock and ZAR pricing; tested payments, delivery, refunds, support, privacy, consent, security, analytics and lot/recall linkage.</p></article>
@@ -349,18 +403,18 @@ export default function Home() {
           </section>
 
           <section id="risks" className="section-anchor p-6 sm:p-10 lg:p-14 bg-muted/45 border-b border-border">
-            <SectionHeading eyebrow="10 · Risks & controls" title="Uncertainty is a control condition—not a gap to fill with creative copy." intro="The proposal converts each material uncertainty into an owner, gate and evidence requirement." />
+            <SectionHeading eyebrow="11 · Risks & controls" title="Uncertainty is a control condition—not a gap to fill with creative copy." intro="The proposal converts each material uncertainty into an owner, gate and evidence requirement." />
             <div className="overflow-x-auto bg-card border border-border"><table className="w-full min-w-[760px] text-left"><thead><tr className="bg-primary text-primary-foreground text-xs uppercase tracking-wider"><th className="p-4">Risk</th><th className="p-4">Consequence</th><th className="p-4">Control</th></tr></thead><tbody>{risks.map(([risk, consequence, control]) => <tr key={risk} className="border-t border-border align-top"><td className="p-4 font-semibold text-sm">{risk}</td><td className="p-4 text-sm text-muted-foreground">{consequence}</td><td className="p-4 text-sm">{control}</td></tr>)}</tbody></table></div>
           </section>
 
           <section id="costing" className="section-anchor p-6 sm:p-10 lg:p-14 border-b border-border">
-            <SectionHeading eyebrow="11 · Indicative proposal framework" title="Price the verified scope—not the contradictions." intro="No final prices are adopted here. The inherited cost models use different scopes, currencies, exclusions and commercial structures and cannot be stacked." />
+            <SectionHeading eyebrow="12 · Indicative proposal framework" title="Price the verified scope—not the contradictions." intro="No final prices are adopted here. The inherited cost models use different scopes, currencies, exclusions and commercial structures and cannot be stacked." />
             <div className="grid md:grid-cols-2 xl:grid-cols-3 border-l border-t border-border">{costBlocks.map((block, index) => <div key={block} className="p-5 border-r border-b border-border min-h-32"><span className="text-[10px] text-primary font-bold">{String(index + 1).padStart(2,"0")}</span><p className="font-semibold mt-5">{block}</p></div>)}</div>
             <div className="mt-8 bg-accent text-accent-foreground p-6"><p className="font-semibold">Final proposal method</p><p className="mt-2 leading-7">Each block receives low/base/high estimates, tax treatment, contingency, dependencies, exclusions, acceptance criteria and a payment gate. Leadership then selects a stage-gated project, recurring programme or hybrid—never all source scenarios added together.</p></div>
           </section>
 
           <section id="decisions" className="section-anchor p-6 sm:p-10 lg:p-14 bg-primary text-primary-foreground">
-            <div className="grid gap-8 lg:grid-cols-[.7fr_.3fr] lg:items-end"><div><p className="eyebrow text-accent">12 · Conclusion & decisions</p><h2 className="display-title text-4xl sm:text-6xl mt-4">Heritage creates attention. Accountability creates the right to scale.</h2><p className="mt-6 max-w-3xl text-primary-foreground/72 leading-8">The defensible path is to verify the business, quarantine unsupported claims, choose a small hero range, build a modular accountable identity, launch a governed information and service platform, pilot in Gauteng and scale only what proves safe, repeatable and contributive.</p></div><button onClick={() => setDecisionRail(true)} className="bg-accent text-accent-foreground p-5 font-bold flex items-center justify-between">Record executive decisions <ArrowRight className="h-5 w-5"/></button></div>
+            <div className="grid gap-8 lg:grid-cols-[.7fr_.3fr] lg:items-end"><div><p className="eyebrow text-accent">13 · Conclusion & decisions</p><h2 className="display-title text-4xl sm:text-6xl mt-4">Heritage creates attention. Accountability creates the right to scale.</h2><p className="mt-6 max-w-3xl text-primary-foreground/72 leading-8">The defensible path is to verify the business, quarantine unsupported claims, choose a small hero range, build a modular accountable identity, launch a governed information and service platform, pilot in Gauteng and scale only what proves safe, repeatable and contributive.</p></div><button onClick={() => setDecisionRail(true)} className="bg-accent text-accent-foreground p-5 font-bold flex items-center justify-between">Record executive decisions <ArrowRight className="h-5 w-5"/></button></div>
             <div className="mt-12 grid md:grid-cols-2 xl:grid-cols-4 border-l border-t border-primary-foreground/20">{["Confirm legal entity & ownership","Approve heritage treatment","Select hero portfolio at Gate B","Choose theme, logo and commerce gate"].map((item,index) => <div key={item} className="p-5 border-r border-b border-primary-foreground/20"><span className="text-xs text-accent font-bold">0{index+1}</span><p className="mt-6">{item}</p></div>)}</div>
           </section>
 

@@ -5,6 +5,7 @@ import {
   logoOptions,
   navigation,
   productCriteria,
+  proposalVideos,
 } from "../client/src/proposalContent";
 
 describe("NMS proposal content controls", () => {
@@ -24,5 +25,11 @@ describe("NMS proposal content controls", () => {
     const decisionKeys = decisionAreas.map(item => item.area);
     expect(new Set(anchors).size).toBe(anchors.length);
     expect(new Set(decisionKeys).size).toBe(decisionKeys.length);
+  });
+
+  it("provides three unique expandable YouTube briefings", () => {
+    expect(proposalVideos).toHaveLength(3);
+    expect(new Set(proposalVideos.map(video => video.id)).size).toBe(3);
+    expect(proposalVideos.filter(video => video.thumbnail)).toHaveLength(2);
   });
 });
