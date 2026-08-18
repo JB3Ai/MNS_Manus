@@ -1,9 +1,10 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertPortalDecision,
   InsertPortalMember,
   InsertUser,
+  documentReviews,
   portalDecisions,
   portalMembers,
   users,
@@ -168,4 +169,52 @@ export async function savePortalDecision(decision: InsertPortalDecision) {
     },
   });
   return listPortalDecisionsForUser(decision.userId);
+}
+
+export async function listDocumentReviews(reviewerId: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(documentReviews)
+    .where(eq(documentReviews.reviewerId, reviewerId))
+    .orderBy(asc(documentReviews.documentId));
+}
+
+export async function recordDocumentReview(input: {
+  reviewerId: string;
+  reviewerName: string;
+  documentId: string;
+  event: "opened" | "downloaded" | "read" | "unread";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const now = new Date();
+  const timestamps = {
+    openedAt: input.event === "opened" || input.event === "downloaded" ? now : undefined,
+    downloadedAt: input.event === "downloaded" ? now : undefined,
+    readAt: input.event === "read" ? now : input.event === "unread" ? null : undefined,
+  };
+  const existing = await db
+    .select()
+    .from(documentReviews)
+    .where(and(eq(documentReviews.reviewerId, input.reviewerId), eq(documentReviews.documentId, input.documentId)))
+    .limit(1);
+
+  if (existing[0]) {
+    await db
+      .update(documentReviews)
+      .set({ reviewerName: input.reviewerName, ...timestamps })
+      .where(eq(documentReviews.id, existing[0].id));
+  } else {
+    await db.insert(documentReviews).values({
+      reviewerId: input.reviewerId,
+      reviewerName: input.reviewerName,
+      documentId: input.documentId,
+      openedAt: timestamps.openedAt ?? null,
+      downloadedAt: timestamps.downloadedAt ?? null,
+      readAt: timestamps.readAt ?? null,
+    });
+  }
+  return listDocumentReviews(input.reviewerId);
 }

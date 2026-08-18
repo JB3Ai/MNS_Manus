@@ -1,5 +1,6 @@
 export const navigation = [
   ["overview", "Overview"],
+  ["vault", "Document vault"],
   ["history", "Brand & history"],
   ["current", "Current state"],
   ["roadmap", "Implementation"],

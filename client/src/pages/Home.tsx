@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
+import { calculateVaultProgress } from "@/lib/vaultProgress";
 import {
   colourOptions,
   complianceLayers,
@@ -30,8 +31,11 @@ import {
   CircleDot,
   Clock3,
   Download,
+  Eye,
   ExternalLink,
+  FileArchive,
   FileCheck2,
+  FileText,
   FlaskConical,
   Gauge,
   Layers3,
@@ -51,6 +55,7 @@ import {
   Sparkles,
   Store,
   Target,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -58,6 +63,9 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type DecisionStatus = "draft" | "approved" | "needs_discussion";
+type VaultReviewer = { id: string; name: string };
+type VaultDocument = { id: string; title: string; filename: string; type: string; size: string; category: string; description: string; url: string };
+type VaultReview = { documentId: string; openedAt: Date | null; downloadedAt: Date | null; readAt: Date | null };
 
 function SectionHeading({
   eyebrow,
@@ -130,6 +138,74 @@ function VideoShowcase() {
         ))}
       </div>
     </section>
+  );
+}
+
+function DocumentVault({ reviewer, onSetReviewer, onChangeReviewer, documents, reviews, loading, onClose }: {
+  reviewer: VaultReviewer | null;
+  onSetReviewer: (name: string) => void;
+  onChangeReviewer: () => void;
+  documents: readonly VaultDocument[];
+  reviews: VaultReview[];
+  loading: boolean;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const utils = trpc.useUtils();
+  const reviewMap = useMemo(() => new Map(reviews.map(review => [review.documentId, review])), [reviews]);
+  const record = trpc.vault.record.useMutation({ onSuccess: () => utils.vault.list.invalidate(), onError: error => toast.error(error.message) });
+  const progress = useMemo(() => calculateVaultProgress(documents.map(document => document.id), reviews), [documents, reviews]);
+  const recordEvent = (documentId: string, event: "opened" | "downloaded" | "read" | "unread") => {
+    if (reviewer) record.mutate({ reviewerId: reviewer.id, reviewerName: reviewer.name, documentId, event });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[85] bg-background text-foreground overflow-y-auto">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="px-5 sm:px-8 lg:px-12 h-18 flex items-center gap-4">
+          <span className="h-10 w-10 bg-primary text-primary-foreground grid place-items-center"><FileArchive className="h-5 w-5" /></span>
+          <div><p className="eyebrow text-primary">Confidential client documents</p><h2 className="font-semibold">NMS Document Vault</h2></div>
+          <button onClick={onClose} aria-label="Close document vault" className="ml-auto h-10 w-10 border border-border grid place-items-center"><X className="h-4 w-4" /></button>
+        </div>
+      </header>
+
+      {!reviewer ? (
+        <main className="min-h-[calc(100vh-72px)] grid place-items-center p-6 portal-grid">
+          <div className="w-full max-w-lg bg-card border border-border p-7 sm:p-10 soft-panel">
+            <UserRound className="h-8 w-8 text-primary" /><p className="eyebrow text-primary mt-7">Reviewer identification</p><h3 className="display-title text-4xl mt-3">Who is reviewing?</h3>
+            <p className="text-muted-foreground mt-4 leading-7">Enter your name once so the vault can keep your document progress separate from the other NMS executives on this browser.</p>
+            <form className="mt-7" onSubmit={event => { event.preventDefault(); if (name.trim().length >= 2) onSetReviewer(name.trim()); }}>
+              <label htmlFor="reviewer-name" className="text-xs uppercase tracking-[.14em] font-bold text-muted-foreground">Full name</label>
+              <Input id="reviewer-name" value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="e.g. Executive name" className="mt-2 h-12" />
+              <Button type="submit" className="mt-3 w-full h-12" disabled={name.trim().length < 2}>Enter document vault <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </form>
+          </div>
+        </main>
+      ) : (
+        <main className="p-5 sm:p-8 lg:p-12 max-w-[1500px] mx-auto">
+          <div className="grid gap-6 xl:grid-cols-[.68fr_.32fr] xl:items-end">
+            <div><p className="eyebrow text-primary">Edited client originals · 8 controlled files</p><h1 className="display-title text-4xl sm:text-6xl mt-4">Review, download and confirm each document.</h1><p className="mt-5 max-w-3xl text-muted-foreground leading-7">These are the user-edited originals supplied on 18 August 2026—not the earlier master documents produced by Manus.</p></div>
+            <div className="bg-primary text-primary-foreground p-6">
+              <div className="flex items-center justify-between gap-4"><div><p className="text-xs text-primary-foreground/60">Reviewing as</p><p className="font-semibold mt-1">{reviewer.name}</p></div><button onClick={onChangeReviewer} className="text-xs underline underline-offset-4">Change</button></div>
+              <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-primary-foreground/20 text-center"><div><p className="text-2xl font-semibold">{progress.opened}</p><p className="text-[10px] text-primary-foreground/60 mt-1">opened</p></div><div><p className="text-2xl font-semibold">{progress.downloaded}</p><p className="text-[10px] text-primary-foreground/60 mt-1">downloaded</p></div><div><p className="text-2xl font-semibold">{progress.read}</p><p className="text-[10px] text-primary-foreground/60 mt-1">read</p></div></div>
+            </div>
+          </div>
+
+          {loading ? <div className="py-24 grid place-items-center"><Leaf className="h-7 w-7 text-primary animate-pulse" /></div> : (
+            <div className="mt-10 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {documents.map((document, index) => {
+                const review = reviewMap.get(document.id);
+                return <article key={document.id} className="bg-card border border-border p-5 sm:p-6 flex flex-col min-h-[340px]">
+                  <div className="flex items-start justify-between gap-4"><span className="h-11 w-11 bg-secondary text-secondary-foreground grid place-items-center"><FileText className="h-5 w-5" /></span><div className="flex gap-1.5"><span title={review?.openedAt ? "Opened" : "Not opened"} className={`h-7 w-7 grid place-items-center border ${review?.openedAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Eye className="h-3.5 w-3.5" /></span><span title={review?.downloadedAt ? "Downloaded" : "Not downloaded"} className={`h-7 w-7 grid place-items-center border ${review?.downloadedAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Download className="h-3.5 w-3.5" /></span><span title={review?.readAt ? "Marked read" : "Not marked read"} className={`h-7 w-7 grid place-items-center border ${review?.readAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Check className="h-3.5 w-3.5" /></span></div></div>
+                  <p className="eyebrow text-primary mt-6">{String(index + 1).padStart(2, "0")} · {document.category}</p><h3 className="text-xl font-semibold mt-3 leading-7">{document.title}</h3><p className="text-sm text-muted-foreground mt-3 leading-6">{document.description}</p><p className="text-xs text-muted-foreground mt-4">{document.type} · {document.size}</p>
+                  <div className="mt-auto pt-6 grid grid-cols-2 gap-2"><a href={document.url} target="_blank" rel="noreferrer" onClick={() => recordEvent(document.id, "opened")} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><Eye className="h-4 w-4" /> Open</a><a href={document.url} download={document.filename} onClick={() => recordEvent(document.id, "downloaded")} className="bg-primary text-primary-foreground px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download</a><button onClick={() => recordEvent(document.id, review?.readAt ? "unread" : "read")} className={`col-span-2 px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border ${review?.readAt ? "border-primary text-primary" : "border-border"}`}><CheckCircle2 className="h-4 w-4" /> {review?.readAt ? "Marked as read" : "Mark as read"}</button></div>
+                </article>;
+              })}
+            </div>
+          )}
+        </main>
+      )}
+    </div>
   );
 }
 
@@ -248,18 +324,59 @@ export default function Home() {
   const { theme, setTheme, themes } = useTheme();
   const [mobileNav, setMobileNav] = useState(false);
   const [decisionRail, setDecisionRail] = useState(false);
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [reminderAction, setReminderAction] = useState<"close" | "logout" | null>(null);
+  const [reviewer, setReviewer] = useState<VaultReviewer | null>(() => {
+    try {
+      const stored = localStorage.getItem("nms-vault-reviewer");
+      return stored ? JSON.parse(stored) as VaultReviewer : null;
+    } catch {
+      return null;
+    }
+  });
   const utils = trpc.useUtils();
   const pinStatus = trpc.pin.status.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  const vaultInput = useMemo(() => ({ reviewerId: reviewer?.id ?? "unassigned" }), [reviewer?.id]);
   const logout = trpc.pin.logout.useMutation({
     onSuccess: async () => {
       await utils.pin.status.invalidate();
       utils.portal.access.setData(undefined, undefined);
       utils.decisions.list.setData(undefined, undefined);
+      utils.vault.list.setData(vaultInput, undefined);
     },
   });
   const access = trpc.portal.access.useQuery(undefined, { enabled: pinStatus.data?.authenticated === true, retry: false });
   const decisions = trpc.decisions.list.useQuery(undefined, { enabled: Boolean(access.data) });
+  const vault = trpc.vault.list.useQuery(vaultInput, { enabled: Boolean(access.data && reviewer), retry: false });
   const decisionMap = useMemo(() => new Map((decisions.data ?? []).map(item => [item.area, item])), [decisions.data]);
+  const vaultReviewMap = useMemo(() => new Map((vault.data?.reviews ?? []).map(item => [item.documentId, item])), [vault.data?.reviews]);
+  const vaultDocuments = vault.data?.documents ?? [];
+  const vaultProgress = useMemo(() => calculateVaultProgress(vaultDocuments.map(document => document.id), vault.data?.reviews ?? []), [vaultDocuments, vault.data?.reviews]);
+  const { remainingDownloads, remainingReads, remainingDocuments, completed: reviewedDocuments } = vaultProgress;
+
+  const saveReviewer = (name: string) => {
+    const next = { id: crypto.randomUUID(), name };
+    localStorage.setItem("nms-vault-reviewer", JSON.stringify(next));
+    setReviewer(next);
+  };
+  const changeReviewer = () => {
+    localStorage.removeItem("nms-vault-reviewer");
+    setReviewer(null);
+  };
+  const requestVaultClose = () => {
+    if (reviewer && vaultDocuments.length > 0 && remainingDocuments > 0) setReminderAction("close");
+    else setVaultOpen(false);
+  };
+  const requestLogout = () => {
+    if (reviewer && vaultDocuments.length > 0 && remainingDocuments > 0) setReminderAction("logout");
+    else logout.mutate();
+  };
+  const confirmReminderAction = () => {
+    const action = reminderAction;
+    setReminderAction(null);
+    if (action === "close") setVaultOpen(false);
+    if (action === "logout") logout.mutate();
+  };
 
   if (pinStatus.isLoading) return <div className="min-h-screen grid place-items-center bg-background"><Leaf className="h-8 w-8 text-primary animate-pulse" /></div>;
   if (!pinStatus.data?.authenticated) return <PinLoginScreen onSuccess={() => pinStatus.refetch()} />;
@@ -290,8 +407,9 @@ export default function Home() {
             <div className="hidden md:flex items-center border border-border bg-card p-1">
               {themes.map(item => <button key={item.id} title={item.description} onClick={() => setTheme(item.id)} className={`px-3 py-1.5 text-[11px] font-bold ${theme === item.id ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{item.name.split(" /")[0]}</button>)}
             </div>
+            <button onClick={() => setVaultOpen(true)} className="h-9 px-3 border border-border bg-card text-xs font-bold flex items-center gap-2"><FileArchive className="h-4 w-4" /> <span className="hidden sm:inline">Vault{reviewer && vaultDocuments.length > 0 ? ` · ${reviewedDocuments}/${vaultDocuments.length}` : ""}</span></button>
             <button onClick={() => setDecisionRail(true)} className="h-9 px-3 bg-accent text-accent-foreground text-xs font-bold flex items-center gap-2"><FileCheck2 className="h-4 w-4" /> <span className="hidden sm:inline">Decisions</span></button>
-            <button onClick={() => logout.mutate()} title="Lock portal" className="h-9 w-9 border border-border bg-card grid place-items-center"><LogOut className="h-4 w-4" /></button>
+            <button onClick={requestLogout} title="Lock portal" className="h-9 w-9 border border-border bg-card grid place-items-center"><LogOut className="h-4 w-4" /></button>
           </div>
         </div>
       </header>
@@ -309,7 +427,7 @@ export default function Home() {
           </nav>
           <div className="m-4 mt-0 p-4 border border-sidebar-border">
             <p className="text-xs font-bold">PIN access active</p>
-            <p className="text-xs text-sidebar-foreground/60 mt-1 truncate">Shared NMS client session</p>
+            <p className="text-xs text-sidebar-foreground/60 mt-1 truncate">{reviewer?.name ?? "Shared NMS client session"}</p>
             <p className="text-[10px] uppercase tracking-wider text-sidebar-primary mt-3">Private proposal</p>
           </div>
         </aside>
@@ -335,6 +453,13 @@ export default function Home() {
             <div className="grid gap-8 xl:grid-cols-[.72fr_.28fr]">
               <div><p className="eyebrow text-primary">Introduction & mandate</p><h2 className="display-title text-4xl sm:text-5xl mt-4 max-w-3xl">JB3AI integrates the transformation; NMS owners retain corporate, regulatory and product authority.</h2><p className="mt-6 max-w-3xl text-muted-foreground leading-8">JB3AI will coordinate discovery, establish the controlled data room and product-information process, convert approved strategy into brand and digital systems, manage acceptance testing and report gate evidence. NMS leadership, legal counsel, the regulatory owner, quality leadership and authorised specialists remain accountable for legal particulars, classifications, claims, labels, quality statements, policies and launch approvals.</p></div>
               <div className="bg-primary text-primary-foreground p-6"><ShieldCheck className="h-7 w-7 text-accent" /><p className="mt-8 text-xl leading-8">Truth before identity.<br />Portfolio before platform.<br />Compliance before promotion.<br />Pilot before scale.</p></div>
+            </div>
+          </section>
+
+          <section id="vault" className="section-anchor p-6 sm:p-10 lg:p-14 bg-muted/45 border-b border-border">
+            <div className="grid gap-8 lg:grid-cols-[.68fr_.32fr] lg:items-end">
+              <div><p className="eyebrow text-primary">Controlled document vault</p><h2 className="display-title text-4xl sm:text-5xl mt-4">Eight edited originals. One accountable review trail.</h2><p className="mt-5 max-w-3xl text-muted-foreground leading-7">Open and download the exact client-edited files, then mark each as read. Progress is kept separately for each named executive on their browser.</p></div>
+              <button onClick={() => setVaultOpen(true)} className="bg-primary text-primary-foreground p-6 text-left group"><FileArchive className="h-7 w-7 text-accent" /><div className="mt-8 flex items-end justify-between gap-4"><div><p className="text-xs text-primary-foreground/60">{reviewer && vaultDocuments.length > 0 ? `${reviewedDocuments} of ${vaultDocuments.length} complete` : "Reviewer setup required"}</p><p className="text-xl font-semibold mt-1">Open document vault</p></div><ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" /></div></button>
             </div>
           </section>
 
@@ -425,6 +550,10 @@ export default function Home() {
           <footer className="p-6 sm:p-10 bg-[#18251f] text-white/65 flex flex-col sm:flex-row gap-4 justify-between text-xs"><p>Prepared by JB3AI for Natural Medicinal Services leadership.</p><p>Working proposal · Not legal, medical, regulatory, tax or investment advice.</p></footer>
         </main>
       </div>
+
+      {vaultOpen && <DocumentVault reviewer={reviewer} onSetReviewer={saveReviewer} onChangeReviewer={changeReviewer} documents={vaultDocuments} reviews={vault.data?.reviews ?? []} loading={vault.isLoading} onClose={requestVaultClose} />}
+
+      {reminderAction && <div className="fixed inset-0 z-[95] grid place-items-center p-5"><button className="absolute inset-0 bg-black/60" aria-label="Return to document vault" onClick={() => setReminderAction(null)} /><div className="relative w-full max-w-lg bg-card text-card-foreground border border-border p-7 sm:p-9 soft-panel"><AlertTriangle className="h-8 w-8 text-accent" /><p className="eyebrow text-primary mt-7">Review reminder</p><h2 className="display-title text-3xl mt-3">You still have {remainingDocuments} {remainingDocuments === 1 ? "document" : "documents"} to complete.</h2><p className="mt-4 text-muted-foreground leading-7">{remainingDownloads} still {remainingDownloads === 1 ? "needs" : "need"} to be downloaded and {remainingReads} still {remainingReads === 1 ? "needs" : "need"} to be marked as read.</p><div className="mt-7 grid sm:grid-cols-2 gap-2"><Button variant="outline" onClick={confirmReminderAction}>{reminderAction === "logout" ? "Lock anyway" : "Close anyway"}</Button><Button onClick={() => { setReminderAction(null); setVaultOpen(true); }}>Continue review</Button></div></div></div>}
 
       {decisionRail && <div className="fixed inset-0 z-[80]"><button aria-label="Close decision register" className="absolute inset-0 bg-black/50" onClick={() => setDecisionRail(false)} /><aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-card text-card-foreground overflow-y-auto soft-panel"><div className="sticky top-0 z-10 bg-card/95 backdrop-blur border-b border-border p-5 flex items-start justify-between"><div><p className="eyebrow text-primary">Executive register</p><h2 className="display-title text-3xl mt-2">Client decisions</h2><p className="text-xs text-muted-foreground mt-2">Shared across the PIN-protected NMS client session.</p></div><button onClick={() => setDecisionRail(false)} className="h-9 w-9 border border-border grid place-items-center"><X className="h-4 w-4" /></button></div><div className="p-5 sm:p-7">{decisionAreas.map(item => <DecisionCard key={item.area} {...item} existing={decisionMap.get(item.area)} onSaved={() => decisions.refetch()} />)}</div></aside></div>}
     </div>

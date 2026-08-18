@@ -1,9 +1,12 @@
 import { COOKIE_NAME } from "@shared/const";
+import { vaultDocuments } from "@shared/vaultDocuments";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   getOrCreatePinClientUser,
+  listDocumentReviews,
   listPortalDecisionsForUser,
+  recordDocumentReview,
   savePortalDecision,
 } from "./db";
 import {
@@ -74,6 +77,24 @@ export const appRouter = router({
         const user = await getOrCreatePinClientUser();
         return savePortalDecision({ userId: user.id, ...input });
       }),
+  }),
+  vault: router({
+    list: pinProtectedProcedure
+      .input(z.object({ reviewerId: z.string().min(8).max(64) }))
+      .query(async ({ input }) => ({
+        documents: vaultDocuments,
+        reviews: await listDocumentReviews(input.reviewerId),
+      })),
+    record: pinProtectedProcedure
+      .input(
+        z.object({
+          reviewerId: z.string().min(8).max(64),
+          reviewerName: z.string().trim().min(2).max(160),
+          documentId: z.enum(vaultDocuments.map(document => document.id) as [string, ...string[]]),
+          event: z.enum(["opened", "downloaded", "read", "unread"]),
+        }),
+      )
+      .mutation(({ input }) => recordDocumentReview(input)),
   }),
 });
 

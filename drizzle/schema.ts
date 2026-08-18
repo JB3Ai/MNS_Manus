@@ -53,9 +53,27 @@ export const portalDecisions = mysqlTable(
   table => [uniqueIndex("decision_user_area_unique").on(table.userId, table.area)],
 );
 
+export const documentReviews = mysqlTable(
+  "document_reviews",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    reviewerId: varchar("reviewerId", { length: 64 }).notNull(),
+    reviewerName: varchar("reviewerName", { length: 160 }).notNull(),
+    documentId: varchar("documentId", { length: 100 }).notNull(),
+    openedAt: timestamp("openedAt"),
+    downloadedAt: timestamp("downloadedAt"),
+    readAt: timestamp("readAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("document_reviewer_unique").on(table.reviewerId, table.documentId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type PortalMember = typeof portalMembers.$inferSelect;
 export type InsertPortalMember = typeof portalMembers.$inferInsert;
 export type PortalDecision = typeof portalDecisions.$inferSelect;
 export type InsertPortalDecision = typeof portalDecisions.$inferInsert;
+export type DocumentReview = typeof documentReviews.$inferSelect;
+export type InsertDocumentReview = typeof documentReviews.$inferInsert;

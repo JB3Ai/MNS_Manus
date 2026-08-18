@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { calculateVaultProgress } from "../client/src/lib/vaultProgress";
+import { vaultDocuments } from "../shared/vaultDocuments";
 import {
   colourOptions,
   decisionAreas,
@@ -36,5 +38,24 @@ describe("NMS proposal content controls", () => {
       expect(video.subtitle.length).toBeGreaterThan(40);
       expect(video.duration).toMatch(/^≈ \d+ min$/);
     });
+  });
+
+  it("publishes the eight edited client originals as unique managed vault files", () => {
+    expect(vaultDocuments).toHaveLength(8);
+    expect(new Set(vaultDocuments.map(document => document.id)).size).toBe(8);
+    expect(new Set(vaultDocuments.map(document => document.url)).size).toBe(8);
+    expect(vaultDocuments.filter(document => document.type === "PDF")).toHaveLength(7);
+    expect(vaultDocuments.filter(document => document.type === "XLSX")).toHaveLength(1);
+    vaultDocuments.forEach(document => expect(document.url).toMatch(/^\/manus-storage\//));
+  });
+
+  it("counts unfinished download-and-read work for the close reminder", () => {
+    const ids = vaultDocuments.map(document => document.id);
+    const progress = calculateVaultProgress(ids, [
+      { documentId: ids[0], openedAt: new Date(), downloadedAt: new Date(), readAt: new Date() },
+      { documentId: ids[1], openedAt: new Date(), downloadedAt: null, readAt: new Date() },
+      { documentId: ids[2], openedAt: null, downloadedAt: new Date(), readAt: null },
+    ]);
+    expect(progress).toMatchObject({ total: 8, opened: 2, downloaded: 2, read: 2, completed: 1, remainingDownloads: 6, remainingReads: 6, remainingDocuments: 7 });
   });
 });
