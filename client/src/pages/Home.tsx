@@ -151,12 +151,17 @@ function DocumentVault({ reviewer, onSetReviewer, onChangeReviewer, documents, r
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
+  const [previewDocument, setPreviewDocument] = useState<VaultDocument | null>(null);
   const utils = trpc.useUtils();
   const reviewMap = useMemo(() => new Map(reviews.map(review => [review.documentId, review])), [reviews]);
   const record = trpc.vault.record.useMutation({ onSuccess: () => utils.vault.list.invalidate(), onError: error => toast.error(error.message) });
   const progress = useMemo(() => calculateVaultProgress(documents.map(document => document.id), reviews), [documents, reviews]);
   const recordEvent = (documentId: string, event: "opened" | "downloaded" | "read" | "unread") => {
     if (reviewer) record.mutate({ reviewerId: reviewer.id, reviewerName: reviewer.name, documentId, event });
+  };
+  const previewPdf = (document: VaultDocument) => {
+    recordEvent(document.id, "opened");
+    setPreviewDocument(document);
   };
 
   return (
@@ -198,13 +203,30 @@ function DocumentVault({ reviewer, onSetReviewer, onChangeReviewer, documents, r
                 return <article key={document.id} className="bg-card border border-border p-5 sm:p-6 flex flex-col min-h-[340px]">
                   <div className="flex items-start justify-between gap-4"><span className="h-11 w-11 bg-secondary text-secondary-foreground grid place-items-center"><FileText className="h-5 w-5" /></span><div className="flex gap-1.5"><span title={review?.openedAt ? "Opened" : "Not opened"} className={`h-7 w-7 grid place-items-center border ${review?.openedAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Eye className="h-3.5 w-3.5" /></span><span title={review?.downloadedAt ? "Downloaded" : "Not downloaded"} className={`h-7 w-7 grid place-items-center border ${review?.downloadedAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Download className="h-3.5 w-3.5" /></span><span title={review?.readAt ? "Marked read" : "Not marked read"} className={`h-7 w-7 grid place-items-center border ${review?.readAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Check className="h-3.5 w-3.5" /></span></div></div>
                   <p className="eyebrow text-primary mt-6">{String(index + 1).padStart(2, "0")} · {document.category}</p><h3 className="text-xl font-semibold mt-3 leading-7">{document.title}</h3><p className="text-sm text-muted-foreground mt-3 leading-6">{document.description}</p><p className="text-xs text-muted-foreground mt-4">{document.type} · {document.size}</p>
-                  <div className="mt-auto pt-6 grid grid-cols-2 gap-2"><a href={document.url} target="_blank" rel="noreferrer" onClick={() => recordEvent(document.id, "opened")} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><Eye className="h-4 w-4" /> Open</a><a href={document.url} download={document.filename} onClick={() => recordEvent(document.id, "downloaded")} className="bg-primary text-primary-foreground px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download</a><button onClick={() => recordEvent(document.id, review?.readAt ? "unread" : "read")} className={`col-span-2 px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border ${review?.readAt ? "border-primary text-primary" : "border-border"}`}><CheckCircle2 className="h-4 w-4" /> {review?.readAt ? "Marked as read" : "Mark as read"}</button></div>
+                  <div className="mt-auto pt-6 grid grid-cols-2 gap-2">{document.type === "PDF" ? <button onClick={() => previewPdf(document)} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><Eye className="h-4 w-4" /> Preview</button> : <a href={document.url} target="_blank" rel="noreferrer" onClick={() => recordEvent(document.id, "opened")} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><ExternalLink className="h-4 w-4" /> Open</a>}<a href={document.url} download={document.filename} onClick={() => recordEvent(document.id, "downloaded")} className="bg-primary text-primary-foreground px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download</a><button onClick={() => recordEvent(document.id, review?.readAt ? "unread" : "read")} className={`col-span-2 px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border ${review?.readAt ? "border-primary text-primary" : "border-border"}`}><CheckCircle2 className="h-4 w-4" /> {review?.readAt ? "Marked as read" : "Mark as read"}</button></div>
                 </article>;
               })}
             </div>
           )}
         </main>
       )}
+
+      {previewDocument && <div className="fixed inset-0 z-[90] bg-[#111815] text-white flex flex-col">
+        <header className="shrink-0 min-h-18 px-4 sm:px-6 py-3 border-b border-white/15 flex flex-wrap items-center gap-3">
+          <span className="h-10 w-10 bg-accent text-accent-foreground grid place-items-center"><FileText className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-[.14em] text-white/50">In-browser PDF preview</p><h3 className="font-semibold truncate mt-1">{previewDocument.title}</h3></div>
+          <a href={previewDocument.url} target="_blank" rel="noreferrer" className="h-10 px-3 border border-white/20 text-xs font-bold flex items-center gap-2"><ExternalLink className="h-4 w-4" /><span className="hidden sm:inline">Open in new tab</span></a>
+          <a href={previewDocument.url} download={previewDocument.filename} onClick={() => recordEvent(previewDocument.id, "downloaded")} className="h-10 px-3 bg-accent text-accent-foreground text-xs font-bold flex items-center gap-2"><Download className="h-4 w-4" /><span className="hidden sm:inline">Download</span></a>
+          <button onClick={() => setPreviewDocument(null)} aria-label="Close PDF preview" className="h-10 w-10 border border-white/20 grid place-items-center"><X className="h-4 w-4" /></button>
+        </header>
+        <div className="flex-1 min-h-0 bg-[#252b28] p-2 sm:p-4">
+          <iframe src={`${previewDocument.url}#toolbar=1&navpanes=0&view=FitH`} title={`Preview of ${previewDocument.title}`} className="h-full w-full bg-white border-0" />
+        </div>
+        <footer className="shrink-0 px-4 sm:px-6 py-3 border-t border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs text-white/55">If your browser blocks embedded PDFs, use “Open in new tab”.</p>
+          <button onClick={() => { recordEvent(previewDocument.id, reviewMap.get(previewDocument.id)?.readAt ? "unread" : "read"); }} className={`px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 border ${reviewMap.get(previewDocument.id)?.readAt ? "border-accent text-accent" : "border-white/25"}`}><CheckCircle2 className="h-4 w-4" /> {reviewMap.get(previewDocument.id)?.readAt ? "Marked as read" : "Mark as read"}</button>
+        </footer>
+      </div>}
     </div>
   );
 }
