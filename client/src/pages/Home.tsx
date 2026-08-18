@@ -98,7 +98,8 @@ function VideoShowcase() {
           <div className="flex items-center justify-between gap-4 p-4 sm:px-5 border-b border-white/15">
             <div>
               <p className="text-[10px] uppercase tracking-[.15em] text-accent font-bold">Now playing</p>
-              <h3 className="font-semibold mt-1">{activeVideo.title}</h3>
+              <h3 className="font-semibold mt-1">{activeVideo.executiveTitle}</h3>
+              <p className="text-xs text-white/55 mt-1">{activeVideo.title} · {activeVideo.duration}</p>
             </div>
             <button onClick={() => setActiveId(null)} aria-label="Close expanded video" className="h-9 w-9 border border-white/25 grid place-items-center hover:bg-white/10"><X className="h-4 w-4" /></button>
           </div>
@@ -117,9 +118,12 @@ function VideoShowcase() {
               <span className="absolute left-4 bottom-4 h-12 w-12 bg-accent text-accent-foreground grid place-items-center"><Play className="h-5 w-5 fill-current" /></span>
               {video.status !== "Available" && <span className="absolute right-3 top-3 bg-black/70 px-3 py-1.5 text-[9px] uppercase tracking-[.12em] font-bold">Processing</span>}
             </div>
-            <div className="p-5 min-h-36 bg-white/[.035]">
-              <p className="text-[10px] uppercase tracking-[.14em] text-accent font-bold">Video {String(index + 1).padStart(2, "0")}</p>
-              <h3 className="font-semibold mt-3 leading-6">{video.title}</h3>
+            <div className="p-5 min-h-44 bg-white/[.035]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] uppercase tracking-[.14em] text-accent font-bold">Video {String(index + 1).padStart(2, "0")}</p>
+                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[.1em] text-white/70"><Clock3 className="h-3.5 w-3.5 text-accent" /> Est. {video.duration.replace("≈ ", "")}</span>
+              </div>
+              <h3 className="font-semibold mt-3 leading-6">{video.executiveTitle}</h3>
               <p className="text-sm text-white/55 mt-2 leading-5">{video.subtitle}</p>
             </div>
           </button>

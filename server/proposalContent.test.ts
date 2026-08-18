@@ -30,6 +30,11 @@ describe("NMS proposal content controls", () => {
   it("provides three unique expandable YouTube briefings", () => {
     expect(proposalVideos).toHaveLength(3);
     expect(new Set(proposalVideos.map(video => video.id)).size).toBe(3);
-    expect(proposalVideos.filter(video => video.thumbnail)).toHaveLength(2);
+    expect(proposalVideos.filter(video => video.thumbnail)).toHaveLength(3);
+    proposalVideos.forEach(video => {
+      expect(video.executiveTitle.length).toBeGreaterThan(10);
+      expect(video.subtitle.length).toBeGreaterThan(40);
+      expect(video.duration).toMatch(/^≈ \d+ min$/);
+    });
   });
 });
