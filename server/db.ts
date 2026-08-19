@@ -10,6 +10,13 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import {
+  isFileStoreEnabled,
+  listFileDecisions,
+  listFileReviews,
+  recordFileReview,
+  saveFileDecision,
+} from "./fileStore";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -66,6 +73,7 @@ export async function getUserByOpenId(openId: string) {
 }
 
 export async function getOrCreatePinClientUser() {
+  if (isFileStoreEnabled()) return { id: 1 };
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const openId = "nms-pin-client";
@@ -149,6 +157,7 @@ export async function listPortalDecisions() {
 }
 
 export async function listPortalDecisionsForUser(userId: number) {
+  if (isFileStoreEnabled()) return listFileDecisions(userId);
   const db = await getDb();
   if (!db) return [];
   return db
@@ -159,6 +168,15 @@ export async function listPortalDecisionsForUser(userId: number) {
 }
 
 export async function savePortalDecision(decision: InsertPortalDecision) {
+  if (isFileStoreEnabled()) {
+    return saveFileDecision({
+      userId: decision.userId,
+      area: decision.area,
+      selection: decision.selection,
+      note: decision.note,
+      status: decision.status,
+    });
+  }
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   await db.insert(portalDecisions).values(decision).onDuplicateKeyUpdate({
@@ -172,6 +190,7 @@ export async function savePortalDecision(decision: InsertPortalDecision) {
 }
 
 export async function listDocumentReviews(reviewerId: string) {
+  if (isFileStoreEnabled()) return listFileReviews(reviewerId);
   const db = await getDb();
   if (!db) return [];
   return db
@@ -187,6 +206,7 @@ export async function recordDocumentReview(input: {
   documentId: string;
   event: "opened" | "downloaded" | "read" | "unread";
 }) {
+  if (isFileStoreEnabled()) return recordFileReview(input);
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const now = new Date();

@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { appUrl } from "@/lib/appUrl";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createRoot } from "react-dom/client";
@@ -11,7 +12,7 @@ const queryClient = new QueryClient();
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "/api/trpc",
+      url: appUrl("/api/trpc"),
       transformer: superjson,
       fetch(input, init) {
         return globalThis.fetch(input, {

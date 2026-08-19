@@ -59,6 +59,7 @@ export function setPinAccessCookie(req: Request, res: Response) {
   const base = getSessionCookieOptions(req);
   res.cookie(PORTAL_PIN_COOKIE, createPinSessionToken(), {
     ...base,
+    path: process.env.NMS_COOKIE_PATH || base.path,
     sameSite: base.secure ? "none" : "lax",
     maxAge: SESSION_DURATION_MS,
   });
@@ -68,6 +69,7 @@ export function clearPinAccessCookie(req: Request, res: Response) {
   const base = getSessionCookieOptions(req);
   res.clearCookie(PORTAL_PIN_COOKIE, {
     ...base,
+    path: process.env.NMS_COOKIE_PATH || base.path,
     sameSite: base.secure ? "none" : "lax",
     maxAge: -1,
   });

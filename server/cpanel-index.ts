@@ -6,10 +6,14 @@ import { createExpressMiddleware, type CreateExpressContextOptions } from "@trpc
 import { appRouter } from "./routers";
 import { hasPinAccess } from "./pinAccess";
 
-for (const variable of ["DATABASE_URL", "JWT_SECRET", "NMS_PORTAL_PIN"] as const) {
+for (const variable of ["JWT_SECRET", "NMS_PORTAL_PIN"] as const) {
   if (!process.env[variable]) {
     throw new Error(`${variable} must be configured before the cPanel portal starts.`);
   }
+}
+
+if (!process.env.DATABASE_URL && !process.env.NMS_DATA_FILE) {
+  throw new Error("Configure either DATABASE_URL or NMS_DATA_FILE before the cPanel portal starts.");
 }
 
 function createStandaloneContext({ req, res }: CreateExpressContextOptions) {

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/contexts/ThemeContext";
+import { appUrl } from "@/lib/appUrl";
 import { trpc } from "@/lib/trpc";
 import { calculateVaultProgress } from "@/lib/vaultProgress";
 import {
@@ -203,7 +204,7 @@ function DocumentVault({ reviewer, onSetReviewer, onChangeReviewer, documents, r
                 return <article key={document.id} className="bg-card border border-border p-5 sm:p-6 flex flex-col min-h-[340px]">
                   <div className="flex items-start justify-between gap-4"><span className="h-11 w-11 bg-secondary text-secondary-foreground grid place-items-center"><FileText className="h-5 w-5" /></span><div className="flex gap-1.5"><span title={review?.openedAt ? "Opened" : "Not opened"} className={`h-7 w-7 grid place-items-center border ${review?.openedAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Eye className="h-3.5 w-3.5" /></span><span title={review?.downloadedAt ? "Downloaded" : "Not downloaded"} className={`h-7 w-7 grid place-items-center border ${review?.downloadedAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Download className="h-3.5 w-3.5" /></span><span title={review?.readAt ? "Marked read" : "Not marked read"} className={`h-7 w-7 grid place-items-center border ${review?.readAt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}><Check className="h-3.5 w-3.5" /></span></div></div>
                   <p className="eyebrow text-primary mt-6">{String(index + 1).padStart(2, "0")} · {document.category}</p><h3 className="text-xl font-semibold mt-3 leading-7">{document.title}</h3><p className="text-sm text-muted-foreground mt-3 leading-6">{document.description}</p><p className="text-xs text-muted-foreground mt-4">{document.type} · {document.size}</p>
-                  <div className="mt-auto pt-6 grid grid-cols-2 gap-2">{document.type === "PDF" ? <button onClick={() => previewPdf(document)} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><Eye className="h-4 w-4" /> Preview</button> : <a href={document.url} target="_blank" rel="noreferrer" onClick={() => recordEvent(document.id, "opened")} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><ExternalLink className="h-4 w-4" /> Open</a>}<a href={document.url} download={document.filename} onClick={() => recordEvent(document.id, "downloaded")} className="bg-primary text-primary-foreground px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download</a><button onClick={() => recordEvent(document.id, review?.readAt ? "unread" : "read")} className={`col-span-2 px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border ${review?.readAt ? "border-primary text-primary" : "border-border"}`}><CheckCircle2 className="h-4 w-4" /> {review?.readAt ? "Marked as read" : "Mark as read"}</button></div>
+                  <div className="mt-auto pt-6 grid grid-cols-2 gap-2">{document.type === "PDF" ? <button onClick={() => previewPdf(document)} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><Eye className="h-4 w-4" /> Preview</button> : <a href={appUrl(document.url)} target="_blank" rel="noreferrer" onClick={() => recordEvent(document.id, "opened")} className="border border-border px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary"><ExternalLink className="h-4 w-4" /> Open</a>}<a href={appUrl(document.url)} download={document.filename} onClick={() => recordEvent(document.id, "downloaded")} className="bg-primary text-primary-foreground px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download</a><button onClick={() => recordEvent(document.id, review?.readAt ? "unread" : "read")} className={`col-span-2 px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border ${review?.readAt ? "border-primary text-primary" : "border-border"}`}><CheckCircle2 className="h-4 w-4" /> {review?.readAt ? "Marked as read" : "Mark as read"}</button></div>
                 </article>;
               })}
             </div>
@@ -215,12 +216,12 @@ function DocumentVault({ reviewer, onSetReviewer, onChangeReviewer, documents, r
         <header className="shrink-0 min-h-18 px-4 sm:px-6 py-3 border-b border-white/15 flex flex-wrap items-center gap-3">
           <span className="h-10 w-10 bg-accent text-accent-foreground grid place-items-center"><FileText className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-[.14em] text-white/50">In-browser PDF preview</p><h3 className="font-semibold truncate mt-1">{previewDocument.title}</h3></div>
-          <a href={previewDocument.url} target="_blank" rel="noreferrer" className="h-10 px-3 border border-white/20 text-xs font-bold flex items-center gap-2"><ExternalLink className="h-4 w-4" /><span className="hidden sm:inline">Open in new tab</span></a>
-          <a href={previewDocument.url} download={previewDocument.filename} onClick={() => recordEvent(previewDocument.id, "downloaded")} className="h-10 px-3 bg-accent text-accent-foreground text-xs font-bold flex items-center gap-2"><Download className="h-4 w-4" /><span className="hidden sm:inline">Download</span></a>
+          <a href={appUrl(previewDocument.url)} target="_blank" rel="noreferrer" className="h-10 px-3 border border-white/20 text-xs font-bold flex items-center gap-2"><ExternalLink className="h-4 w-4" /><span className="hidden sm:inline">Open in new tab</span></a>
+          <a href={appUrl(previewDocument.url)} download={previewDocument.filename} onClick={() => recordEvent(previewDocument.id, "downloaded")} className="h-10 px-3 bg-accent text-accent-foreground text-xs font-bold flex items-center gap-2"><Download className="h-4 w-4" /><span className="hidden sm:inline">Download</span></a>
           <button onClick={() => setPreviewDocument(null)} aria-label="Close PDF preview" className="h-10 w-10 border border-white/20 grid place-items-center"><X className="h-4 w-4" /></button>
         </header>
         <div className="flex-1 min-h-0 bg-[#252b28] p-2 sm:p-4">
-          <iframe src={`${previewDocument.url}#toolbar=1&navpanes=0&view=FitH`} title={`Preview of ${previewDocument.title}`} className="h-full w-full bg-white border-0" />
+          <iframe src={`${appUrl(previewDocument.url)}#toolbar=1&navpanes=0&view=FitH`} title={`Preview of ${previewDocument.title}`} className="h-full w-full bg-white border-0" />
         </div>
         <footer className="shrink-0 px-4 sm:px-6 py-3 border-t border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-xs text-white/55">If your browser blocks embedded PDFs, use “Open in new tab”.</p>
@@ -304,7 +305,7 @@ function PinLoginScreen({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <main className="min-h-screen grid lg:grid-cols-[1.05fr_.95fr] bg-background text-foreground">
-      <section className="relative order-2 lg:order-1 min-h-[52vh] lg:min-h-screen bg-cover bg-center" style={{ backgroundImage: "url('/manus-storage/nms-botanical-packaging_bdbd72ed.png')" }}>
+      <section className="relative order-2 lg:order-1 min-h-[52vh] lg:min-h-screen bg-cover bg-center" style={{ backgroundImage: `url('${appUrl("/manus-storage/nms-botanical-packaging_bdbd72ed.png")}')` }}>
         <div className="absolute inset-0 hero-overlay" />
         <div className="relative z-10 h-full flex flex-col justify-between p-7 sm:p-12 lg:p-16 text-white">
           <div className="flex items-center gap-3">
@@ -446,7 +447,7 @@ export default function Home() {
         </aside>
 
         <main className="min-w-0">
-          <section id="overview" className="section-anchor relative min-h-[620px] bg-cover bg-center" style={{ backgroundImage: "url('/manus-storage/nms-botanical-packaging_bdbd72ed.png')" }}>
+          <section id="overview" className="section-anchor relative min-h-[620px] bg-cover bg-center" style={{ backgroundImage: `url('${appUrl("/manus-storage/nms-botanical-packaging_bdbd72ed.png")}')` }}>
             <div className="absolute inset-0 hero-overlay" />
             <div className="relative z-10 min-h-[620px] flex flex-col justify-between p-6 sm:p-10 lg:p-14 text-white">
               <div className="flex justify-between items-start gap-4"><p className="eyebrow text-white/70">Consolidated transformation proposal</p><span className="border border-white/35 px-3 py-1.5 text-[10px] uppercase tracking-[.14em]">Confidential</span></div>
@@ -516,7 +517,7 @@ export default function Home() {
           <section id="products" className="section-anchor p-6 sm:p-10 lg:p-14 bg-muted/45 border-b border-border">
             <SectionHeading eyebrow="06 · Products & rebranding" title="From 247 held rows to three–five defensible heroes." intro="Rebranding is not a label reskin. Every hero candidate must first pass mandatory safety, identity, licence and production disqualifiers." />
             <div className="grid gap-8 xl:grid-cols-[.37fr_.63fr]">
-              <div className="bg-card border border-border p-6"><img src="/manus-storage/product-status-indicator_40bc02cd.png" alt="Red quarantine, amber needs work and green hero candidate product triage" className="w-full h-auto" /><p className="text-xs text-muted-foreground mt-4 leading-5">Green means eligible for weighted scoring—not automatically approved. All eight QA release checks must still pass.</p></div>
+              <div className="bg-card border border-border p-6"><img src={appUrl("/manus-storage/product-status-indicator_40bc02cd.png")} alt="Red quarantine, amber needs work and green hero candidate product triage" className="w-full h-auto" /><p className="text-xs text-muted-foreground mt-4 leading-5">Green means eligible for weighted scoring—not automatically approved. All eight QA release checks must still pass.</p></div>
               <div className="space-y-4">{productCriteria.map(item => <article key={item.name}><div className="flex justify-between gap-4 text-sm"><h3 className="font-semibold">{item.name}</h3><span className="font-bold text-primary">{item.weight}%</span></div><div className="h-2 bg-secondary mt-2"><div className="h-full bg-primary" style={{ width: `${item.weight * 4}%` }} /></div><p className="text-xs text-muted-foreground mt-2 leading-5">{item.detail}</p></article>)}</div>
             </div>
           </section>
