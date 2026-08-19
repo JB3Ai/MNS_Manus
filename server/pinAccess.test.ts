@@ -59,7 +59,7 @@ describe("PIN access", () => {
       options: {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "none",
         path: "/",
       },
     });
@@ -70,7 +70,7 @@ describe("PIN access", () => {
       options: {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "none",
         path: "/",
         maxAge: -1,
       },

@@ -290,6 +290,7 @@ function DecisionCard({
 
 function PinLoginScreen({ onSuccess }: { onSuccess: () => void }) {
   const [pin, setPin] = useState("");
+  const [confidentialityAccepted, setConfidentialityAccepted] = useState(false);
   const login = trpc.pin.login.useMutation({
     onSuccess: () => {
       toast.success("Portal unlocked");
@@ -323,14 +324,19 @@ function PinLoginScreen({ onSuccess }: { onSuccess: () => void }) {
           <LockKeyhole className="h-8 w-8 text-primary" />
           <p className="eyebrow text-primary mt-8">Private client access</p>
           <h2 className="display-title text-4xl mt-3">Review. Decide. Progress.</h2>
-          <p className="text-muted-foreground mt-5 leading-7">Enter the private access PIN supplied by JB3AI. No account, email address or external login is required.</p>
+          <p className="text-muted-foreground mt-5 leading-7">Enter the private access PIN supplied by JB3AI. A successful unlock opens the main executive proposal page.</p>
           <form className="mt-8" onSubmit={event => { event.preventDefault(); login.mutate({ pin }); }}>
             <label htmlFor="portal-pin" className="text-xs uppercase tracking-[.14em] font-bold text-muted-foreground">Access PIN</label>
             <Input id="portal-pin" type="password" inputMode="numeric" autoComplete="current-password" autoFocus value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="••••" className="mt-2 h-14 text-center text-2xl tracking-[.6em]" />
-            <Button type="submit" size="lg" className="w-full mt-3 h-12" disabled={pin.length < 4 || login.isPending}>
-              {login.isPending ? "Checking…" : "Unlock proposal"} <ArrowRight className="ml-2 h-4 w-4" />
+            <label className="mt-4 border border-border bg-muted/45 p-4 flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" checked={confidentialityAccepted} onChange={event => setConfidentialityAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[var(--primary)]" />
+              <span className="text-xs text-muted-foreground leading-5"><strong className="text-foreground">Confidential-use acknowledgement.</strong> I am an authorised NMS reviewer and will not copy, reproduce, forward, screenshot, distribute or share this portal, its documents, videos or access PIN without written permission.</span>
+            </label>
+            <Button type="submit" size="lg" className="w-full mt-3 h-12" disabled={pin.length < 4 || !confidentialityAccepted || login.isPending}>
+              {login.isPending ? "Checking…" : "Unlock confidential portal"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
+          <p className="mt-4 text-[11px] text-muted-foreground leading-5">Access is limited to the intended recipients. Activity in the document vault may be recorded for review-progress purposes.</p>
           <div className="mt-7 pt-6 border-t border-border grid grid-cols-3 gap-4 text-center">
             <div><p className="font-bold">3</p><p className="text-[11px] text-muted-foreground">seats</p></div>
             <div><p className="font-bold">12</p><p className="text-[11px] text-muted-foreground">sources</p></div>
@@ -362,14 +368,12 @@ export default function Home() {
   const logout = trpc.pin.logout.useMutation({
     onSuccess: async () => {
       await utils.pin.status.invalidate();
-      utils.portal.access.setData(undefined, undefined);
       utils.decisions.list.setData(undefined, undefined);
       utils.vault.list.setData(vaultInput, undefined);
     },
   });
-  const access = trpc.portal.access.useQuery(undefined, { enabled: pinStatus.data?.authenticated === true, retry: false });
-  const decisions = trpc.decisions.list.useQuery(undefined, { enabled: Boolean(access.data) });
-  const vault = trpc.vault.list.useQuery(vaultInput, { enabled: Boolean(access.data && reviewer), retry: false });
+  const decisions = trpc.decisions.list.useQuery(undefined, { enabled: pinStatus.data?.authenticated === true });
+  const vault = trpc.vault.list.useQuery(vaultInput, { enabled: Boolean(pinStatus.data?.authenticated && reviewer), retry: false });
   const decisionMap = useMemo(() => new Map((decisions.data ?? []).map(item => [item.area, item])), [decisions.data]);
   const vaultReviewMap = useMemo(() => new Map((vault.data?.reviews ?? []).map(item => [item.documentId, item])), [vault.data?.reviews]);
   const vaultDocuments = vault.data?.documents ?? [];
@@ -402,19 +406,6 @@ export default function Home() {
 
   if (pinStatus.isLoading) return <div className="min-h-screen grid place-items-center bg-background"><Leaf className="h-8 w-8 text-primary animate-pulse" /></div>;
   if (!pinStatus.data?.authenticated) return <PinLoginScreen onSuccess={() => pinStatus.refetch()} />;
-  if (access.isLoading) return <div className="min-h-screen grid place-items-center bg-background"><div className="text-center"><Leaf className="h-8 w-8 text-primary animate-pulse mx-auto" /><p className="mt-4 text-sm text-muted-foreground">Opening controlled proposal…</p></div></div>;
-  if (access.error) return (
-    <main className="min-h-screen grid place-items-center bg-background p-6">
-      <div className="max-w-lg bg-card border border-border p-8 text-center soft-panel">
-        <LockKeyhole className="h-9 w-9 mx-auto text-destructive" />
-        <h1 className="display-title text-3xl mt-5">Seat allocation required</h1>
-        <p className="mt-4 text-muted-foreground">{access.error.message}</p>
-        <Button variant="outline" className="mt-6" onClick={() => logout.mutate()}>Lock portal</Button>
-      </div>
-    </main>
-  );
-
-  const portal = access.data!;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
