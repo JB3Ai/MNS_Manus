@@ -56,6 +56,10 @@ app.use(express.static(publicRoot));
 app.use("*", (_req, res) => res.sendFile(path.join(publicRoot, "index.html")));
 
 const port = Number.parseInt(process.env.PORT || "3000", 10);
-server.listen(port, "0.0.0.0", () => {
-  console.log(`NMS portal listening on port ${port}`);
-});
+if (process.env.NMS_EMBEDDED !== "1") {
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`NMS portal listening on port ${port}`);
+  });
+}
+
+export { app };

@@ -1,4 +1,4 @@
-const applicationBase = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+export const applicationBase = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
 export function appUrl(value: string) {
   if (/^(?:https?:|data:|blob:|#)/i.test(value)) return value;
