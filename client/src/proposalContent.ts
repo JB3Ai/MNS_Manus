@@ -21,6 +21,7 @@ export const navigation = [
 export const proposalVideos = [
   {
     id: "sg7f5TGbeno",
+    youtubeUrl: "https://youtu.be/sg7f5TGbeno",
     title: "The Digital Operating System",
     executiveTitle: "Digital Growth & Commerce Relaunch",
     subtitle: "Operating model for the website, social channels, CRM, customer service and gated online ordering.",
@@ -30,6 +31,7 @@ export const proposalVideos = [
   },
   {
     id: "RncAWK7UVHk",
+    youtubeUrl: "https://youtu.be/RncAWK7UVHk",
     title: "The 90-Day Transformation Blueprint",
     executiveTitle: "90-Day Transformation Plan",
     subtitle: "Decision gates, executive ownership, early priorities and milestones for the first delivery sprint.",
@@ -39,6 +41,7 @@ export const proposalVideos = [
   },
   {
     id: "A1k4S4FmYG4",
+    youtubeUrl: "https://youtu.be/A1k4S4FmYG4",
     title: "The Heritage Trap",
     executiveTitle: "Heritage, Proof & Brand Risk",
     subtitle: "How to preserve the 1934 heritage story while controlling evidence, claims and reputation risk.",

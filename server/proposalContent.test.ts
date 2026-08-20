@@ -32,8 +32,14 @@ describe("NMS proposal content controls", () => {
   it("provides three unique expandable YouTube briefings", () => {
     expect(proposalVideos).toHaveLength(3);
     expect(new Set(proposalVideos.map(video => video.id)).size).toBe(3);
+    expect(proposalVideos.map(video => video.youtubeUrl)).toEqual([
+      "https://youtu.be/sg7f5TGbeno",
+      "https://youtu.be/RncAWK7UVHk",
+      "https://youtu.be/A1k4S4FmYG4",
+    ]);
     expect(proposalVideos.filter(video => video.thumbnail)).toHaveLength(3);
     proposalVideos.forEach(video => {
+      expect(video.youtubeUrl).toBe(`https://youtu.be/${video.id}`);
       expect(video.executiveTitle.length).toBeGreaterThan(10);
       expect(video.subtitle.length).toBeGreaterThan(40);
       expect(video.duration).toMatch(/^≈ \d+ min$/);

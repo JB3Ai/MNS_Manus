@@ -110,11 +110,19 @@ function VideoShowcase() {
               <h3 className="font-semibold mt-1">{activeVideo.executiveTitle}</h3>
               <p className="text-xs text-white/55 mt-1">{activeVideo.title} · {activeVideo.duration}</p>
             </div>
-            <button onClick={() => setActiveId(null)} aria-label="Close expanded video" className="h-9 w-9 border border-white/25 grid place-items-center hover:bg-white/10"><X className="h-4 w-4" /></button>
+            <div className="flex items-center gap-2">
+              <a href={activeVideo.youtubeUrl} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex h-9 items-center gap-2 border border-white/25 px-3 text-[10px] font-bold uppercase tracking-[.1em] hover:bg-white/10">
+                Watch on YouTube <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <button onClick={() => setActiveId(null)} aria-label="Close expanded video" className="h-9 w-9 border border-white/25 grid place-items-center hover:bg-white/10"><X className="h-4 w-4" /></button>
+            </div>
           </div>
           <div className="aspect-video bg-black">
-            <iframe className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${activeVideo.id}?autoplay=1&rel=0`} title={activeVideo.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+            <iframe key={activeVideo.id} className="h-full w-full" src={`https://www.youtube.com/embed/${activeVideo.id}?autoplay=1&rel=0&playsinline=1`} title={activeVideo.title} loading="eager" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
           </div>
+          <a href={activeVideo.youtubeUrl} target="_blank" rel="noopener noreferrer" className="sm:hidden flex items-center justify-center gap-2 border-t border-white/15 p-3 text-[10px] font-bold uppercase tracking-[.1em] text-white/80 hover:bg-white/10">
+            If playback is blocked, watch on YouTube <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
       )}
 
